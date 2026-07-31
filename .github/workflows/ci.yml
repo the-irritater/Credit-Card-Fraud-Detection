@@ -1,0 +1,56 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pytest
+
+      - name: Lint with flake8
+        run: |
+          # Stop build on syntax errors or undefined names
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warnings (non-blocking)
+          flake8 src/ --count --max-line-length=120 --ignore=E501,W503 --statistics --exit-zero
+
+      - name: Verify imports
+        run: |
+          python -c "from src.config import RANDOM_STATE; print(f'Config OK: RANDOM_STATE={RANDOM_STATE}')"
+          python -c "from src.constants import AMOUNT_BINS; print(f'Constants OK: {len(AMOUNT_BINS)} bins')"
+          python -c "from src.evaluate import evaluate_model; print('Evaluate OK')"
+          python -c "from src.feature_engineering import engineer_features; print('Feature Engineering OK')"
+          python -c "from src.train import train_and_benchmark_models; print('Train OK')"
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --tb=short

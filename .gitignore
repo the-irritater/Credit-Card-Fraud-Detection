@@ -24,6 +24,10 @@ venv.bak/
 .idea/
 .ipynb_checkpoints/
 
-# Task logs & temporary caches
+# Logs & temporary caches
+logs/
 *.log
 scratch/
+
+# Large output files
+reports/predictions_output.csv

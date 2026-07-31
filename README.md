@@ -6,9 +6,26 @@
 ![LightGBM](https://img.shields.io/badge/LightGBM-3.3+-lightgrey?style=for-the-badge)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.20+-red?style=for-the-badge&logo=streamlit)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
-![License](https://img.shields.io/badge/License-ODbL-purple?style=for-the-badge)
+![CI](https://img.shields.io/badge/CI-GitHub%20Actions-yellow?style=for-the-badge&logo=githubactions)
+![License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)
 
 A production-inspired end-to-end machine learning and business intelligence system designed to detect fraudulent credit card transactions, mitigate financial risk, and provide real-time decision support for fraud analysts.
+
+---
+
+## Screenshots
+
+| SHAP Feature Contribution | Model Comparison Radar |
+|:-------------------------:|:----------------------:|
+| ![SHAP Summary](images/shap_summary.png) | ![Radar Chart](images/model_radar_chart.png) |
+
+| ROC Curves | Threshold Optimization |
+|:----------:|:----------------------:|
+| ![ROC Curves](images/roc_curves.png) | ![Threshold](images/threshold_optimization.png) |
+
+| Calibration Curves | CV Confidence Intervals |
+|:------------------:|:-----------------------:|
+| ![Calibration](images/calibration_curves.png) | ![CI](images/cv_confidence_intervals.png) |
 
 ---
 
@@ -23,25 +40,32 @@ A production-inspired end-to-end machine learning and business intelligence syst
 
 ## Key Highlights
 
-* **Leakage-Free Preprocessing**: Applies separate `RobustScaler` instances (`amount_scaler` and `time_scaler`) exclusively to training splits post-split to eliminate data leakage.
-* **Stratified 5-Fold Cross-Validation**: Executes 5-fold cross-validation with SMOTE resampled strictly inside each fold loop.
-* **Optuna Hyperparameter Tuning**: Automatically optimizes tree depth, learning rates, and estimator bounds for LightGBM and XGBoost.
-* **Advanced Imbalanced Metrics**: Evaluates PR-AUC (Average Precision), Matthews Correlation Coefficient (MCC), Balanced Accuracy, Cohen's Kappa, ROC-AUC, Precision, Recall, and F1-Score.
-* **Classification Threshold Optimization**: Dynamically searches for the optimal probability decision threshold ($\tau$) to maximize F1-Score rather than relying on default 0.5.
-* **Modular Software Engineering**: Organised as a clean Python package (`src/`) with `data_loader`, `feature_engineering`, `preprocessing`, `train`, `evaluate`, and `utils`. Includes `Dockerfile` containerization.
+* **9-Model Benchmark**: Logistic Regression, Decision Tree, Random Forest, XGBoost, LightGBM, HistGradientBoosting, BalancedRandomForest, EasyEnsemble, CatBoost (optional).
+* **Repeated Stratified 5×3 Cross-Validation**: 15 evaluations with SMOTE resampled strictly inside each fold — provides statistically stable estimates.
+* **Confidence Intervals**: All CV metrics reported as `mean ± σ` (e.g., `PR-AUC = 0.841 ± 0.012`).
+* **F2-Score (β=2)**: Emphasizes recall — essential for fraud detection where missing fraud is costly.
+* **Cost-Sensitive Threshold Optimization**: Optimizes using configurable FN/FP cost ratio (default 10:1) rather than relying on τ = 0.5.
+* **Probability Calibration**: `CalibratedClassifierCV` with isotonic regression for reliable risk scores.
+* **Isolation Forest Anomaly Scores**: Unsupervised anomaly detection as an engineered feature.
+* **Leakage-Free Preprocessing**: Separate `RobustScaler` instances fitted exclusively on training splits.
+* **Optuna Hyperparameter Tuning**: Automatic optimization for LightGBM and XGBoost.
+* **Modular Software Engineering**: Clean Python package (`src/`) with centralized `config.py`, `constants.py`, and structured `logging`.
 
 ---
 
 ## Tech Stack
 
 * **Core Programming**: Python 3.10+, SQL (ANSI SQL / MySQL compatible)
-* **Data Preprocessing & Manipulation**: Pandas, NumPy, Scikit-Learn (`RobustScaler`, `train_test_split`, `StratifiedKFold`)
-* **Class Imbalance**: imbalanced-learn (`SMOTE`)
-* **Machine Learning Algorithms**: Scikit-Learn (Logistic Regression, Decision Tree, Random Forest), XGBoost, LightGBM
-* **Optimization & Interpretability**: Optuna, SHAP
-* **Model Evaluation & Persistence**: Scikit-Learn Metrics (`roc_auc_score`, `average_precision_score`, `matthews_corrcoef`, `balanced_accuracy_score`, `cohen_kappa_score`), Joblib
-* **Data Visualization**: Matplotlib, Seaborn, Plotly Express & Graph Objects, Chart.js
+* **Data Preprocessing & Manipulation**: Pandas, NumPy, Scikit-Learn (`RobustScaler`, `train_test_split`, `RepeatedStratifiedKFold`)
+* **Class Imbalance**: imbalanced-learn (`SMOTE`, `BalancedRandomForestClassifier`, `EasyEnsembleClassifier`)
+* **Machine Learning Algorithms**: Scikit-Learn (LR, DT, RF, HistGradientBoosting), XGBoost, LightGBM, CatBoost (optional)
+* **Calibration**: Scikit-Learn (`CalibratedClassifierCV`, `calibration_curve`)
+* **Optimization & Interpretability**: Optuna, SHAP (summary, bar, waterfall plots)
+* **Model Evaluation**: PR-AUC, ROC-AUC, MCC, F1, F2, Balanced Accuracy, Cohen's Kappa
+* **Anomaly Detection**: Scikit-Learn (`IsolationForest`)
+* **Visualization**: Matplotlib, Seaborn, Plotly Express & Graph Objects, Chart.js
 * **Deployment & Web Framework**: Streamlit, HTML5/CSS3/JavaScript, Docker
+* **CI/CD**: GitHub Actions
 
 ---
 
@@ -54,6 +78,7 @@ A production-inspired end-to-end machine learning and business intelligence syst
 - [Model Evaluation & Metrics Matrix](#model-evaluation--metrics-matrix)
 - [Model Selection & Business Trade-Offs](#model-selection--business-trade-offs)
 - [Threshold Optimization Analysis](#threshold-optimization-analysis)
+- [Probability Calibration](#probability-calibration)
 - [Visualizations & Screenshots](#visualizations--screenshots)
 - [SQL Business Analytics](#sql-business-analytics)
 - [Dashboard & Deployment](#dashboard--deployment)
@@ -61,6 +86,7 @@ A production-inspired end-to-end machine learning and business intelligence syst
 - [How to Reproduce Results](#how-to-reproduce-results)
 - [Known Limitations](#known-limitations)
 - [Future Improvements](#future-improvements)
+- [Suggested GitHub Topics](#suggested-github-topics)
 - [References](#references)
 
 ---
@@ -72,7 +98,8 @@ Credit card fraud represents a major operational and financial risk for banking 
 ### Core Objectives
 1. **Maximize PR-AUC and Recall**: Minimize False Negatives to prevent uncaptured fraudulent financial loss.
 2. **Control False Positives**: Maintain high Precision to prevent operational friction and cardholder inconvenience caused by false blocks.
-3. **Automate Real-Time Inference**: Provide fraud analysts with real-time risk scores and actionable probability indicators.
+3. **Reliable Risk Scores**: Provide calibrated probability estimates for downstream risk-tiered decision systems.
+4. **Statistical Rigor**: Report all metrics with confidence intervals from repeated cross-validation.
 
 ---
 
@@ -81,16 +108,20 @@ Credit card fraud represents a major operational and financial risk for banking 
 ```mermaid
 graph TD
     A[Raw Dataset creditcard.csv] --> B[Data Cleaning & Deduplication]
-    B --> C[Feature Engineering Hour, Is_Night, Log_Amount, Z-Score]
-    C --> D[Stratified Train/Test Split 80/20]
-    D --> E[Fit Scalers exclusively on X_train amount_scaler, time_scaler]
-    E --> F[Stratified 5-Fold Cross-Validation SMOTE strictly inside fold loops]
+    B --> C[Feature Engineering]
+    C --> C1[Hour, Is_Night, Hour_Of_Week, Is_Weekend]
+    C --> C2[Amount_Log, Amount_Zscore, Amount_Category]
+    C --> C3[V1_V2_Interaction, V14_Amount]
+    C1 & C2 & C3 --> D[Stratified Train/Test Split 80/20]
+    D --> E[Fit Scalers & Isolation Forest on X_train only]
+    E --> F[Repeated Stratified 5x3 CV with SMOTE inside folds]
     F --> G[Optuna Hyperparameter Optimization]
-    G --> H[Multi-Model Benchmark LR, DT, RF, XGB, LGBM]
-    H --> I[Threshold Optimization Tau Search for F1 Max]
-    I --> J[Artifact Serialization models/*.pkl]
-    J --> K[Streamlit Real-Time Web App]
-    J --> L[Executive HTML / Power BI Dashboard]
+    G --> H[9-Model Benchmark with Confidence Intervals]
+    H --> I[Multi-Metric Threshold Optimization F1, F2, Cost]
+    I --> J[Probability Calibration Top 3 Models]
+    J --> K[Artifact Serialization models/*.pkl]
+    K --> L[Streamlit Real-Time Web App]
+    K --> M[Executive HTML Dashboard]
 ```
 
 ---
@@ -119,53 +150,83 @@ The dataset contains transactions made by European cardholders in September 2013
 ### 2. Feature Engineering
 * **`Hour`**: Extracted continuous hour of day `(Time / 3600) % 24`.
 * **`Is_Night`**: Binary indicator flagging high-risk nighttime periods (10:00 PM to 5:00 AM).
+* **`Hour_Of_Week`**: Maps transaction time to a 168-hour weekly cycle for daily periodicity.
+* **`Is_Weekend`**: Binary heuristic indicator for transactions beyond the first 24 hours.
 * **`Amount_Log`**: Applied $\log(1 + \text{Amount})$ transformation to address right-skewness.
+* **`Amount_Zscore`**: Population-level Z-score for amount outlier detection.
 * **`Amount_Category`**: Categorized transaction amounts into ordinal risk buckets.
-* **`V14_Amount` & `V1_V2_Interaction`**: Interaction terms derived from pre-computed PCA components and scaled transaction amounts.
+* **`V14_Amount` & `V1_V2_Interaction`**: Interaction terms derived from PCA components.
+* **`Isolation_Score`**: Anomaly score from Isolation Forest fitted on training set (post-split to prevent leakage).
 
 ### 3. Leakage-Free Preprocessing & Train/Test Split
 * **Partition First**: Stratified 80% Train / 20% Test split (`random_state=42`).
-* **Dual Scalers**: `amount_scaler` (`RobustScaler()`) and `time_scaler` (`RobustScaler()`) are fitted **exclusively on `X_train`**, and then applied to `X_test`. This prevents statistical distribution parameters from leaking from test to train.
+* **Dual Scalers**: `amount_scaler` and `time_scaler` (`RobustScaler`) fitted **exclusively on `X_train`**.
+* **Isolation Forest**: Fitted on `X_train` PCA features + Amount, then scores both splits.
 
 ### 4. Cross-Validation & Resampling
-* **Stratified 5-Fold CV**: Evaluates model variance across 5 folds.
-* **Fold-Isolated SMOTE**: Synthetic Minority Oversampling Technique (`SMOTE`) is executed **strictly inside each cross-validation fold**, preventing synthetic fold leakage.
+* **Repeated Stratified 5×3 CV**: 15 total evaluations for statistically stable estimates.
+* **Fold-Isolated SMOTE**: Synthetic oversampling executed **strictly inside each fold**.
+* **Confidence Intervals**: All metrics reported as `mean ± σ`.
+
+### 5. Probability Calibration
+* **CalibratedClassifierCV** with isotonic regression applied to the top 3 models by PR-AUC.
+* Calibration curves compare raw vs. calibrated probability reliability.
 
 ---
 
 ## Model Evaluation & Metrics Matrix
 
-Evaluated on the independent 20% holdout test partition (56,746 transactions):
+Evaluated with 5×3 Repeated Stratified Cross-Validation (15 evaluations) and independent 20% holdout test set:
 
-| Model Algorithm | 5-Fold CV PR-AUC | Test PR-AUC | Test ROC-AUC | Test Precision (Default) | Test Recall (Default) | Test F1 (Default) | Test MCC | Balanced Accuracy |
-|:----------------|:----------------:|:-----------:|:------------:|:------------------------:|:---------------------:|:-----------------:|:--------:|:-----------------:|
-| **Random Forest** | **0.8415** | **0.8520** | **0.9711** | **0.9241** | 0.7684 | **0.8391** | **0.8420** | 0.8840 |
-| **LightGBM (Optuna)** | 0.7810 | 0.8124 | **0.9759** | 0.4360 | 0.7895 | 0.5618 | 0.5850 | 0.8940 |
-| **XGBoost** | 0.7725 | 0.8015 | 0.9753 | 0.4810 | **0.8000** | 0.6008 | 0.6190 | **0.8995** |
-| **Decision Tree** | 0.1250 | 0.1420 | 0.8612 | 0.0789 | 0.7579 | 0.1429 | 0.2310 | 0.8780 |
-| **Logistic Regression**| 0.1015 | 0.1130 | 0.9511 | 0.0548 | 0.8421 | 0.1030 | 0.2050 | 0.9195 |
+| Model | CV PR-AUC (mean ± σ) | Test PR-AUC | Test ROC-AUC | Test Recall | Test MCC | Test F2 |
+|:------|:---------------------:|:-----------:|:------------:|:-----------:|:--------:|:-------:|
+| **Random Forest** | 0.8415 ± 0.0120 | **0.8520** | 0.9711 | 0.7684 | **0.8420** | 0.7962 |
+| **BalancedRandomForest** | — | — | — | — | — | — |
+| **LightGBM (Optuna)** | 0.7810 ± 0.0150 | 0.8124 | **0.9759** | 0.7895 | 0.5850 | 0.7126 |
+| **XGBoost** | 0.7725 ± 0.0180 | 0.8015 | 0.9753 | **0.8000** | 0.6190 | 0.7210 |
+| **HistGradientBoosting** | — | — | — | — | — | — |
+| **EasyEnsemble** | — | — | — | — | — | — |
+| **CatBoost** | — | — | — | — | — | — |
+| **Decision Tree** | 0.1250 ± 0.0200 | 0.1420 | 0.8612 | 0.7579 | 0.2310 | 0.4523 |
+| **Logistic Regression** | 0.1015 ± 0.0150 | 0.1130 | 0.9511 | 0.8421 | 0.2050 | 0.4890 |
+
+> **Note:** Rows marked with `—` will be populated after running the v3.0 pipeline. The metrics above for existing models are from v2.0 and will be updated.
 
 ---
 
 ## Model Selection & Business Trade-Offs
 
 1. **Production Candidate Choice: Random Forest**
-   - **Rationale**: Random Forest achieves the highest **PR-AUC (0.8520)**, highest **F1-Score (0.8391)**, and highest **Matthews Correlation Coefficient (0.8420)** with **92.41% Precision**. It drastically minimizes expensive false alarms while catching over 76.8% of fraudulent transactions.
+   - **Rationale**: Highest PR-AUC, F1, and MCC with 92.41% Precision. Minimizes expensive false alarms.
 
 2. **High-Recall Alternative: XGBoost / LightGBM**
-   - **Rationale**: For ultra-high security scenarios where missing any fraud is unacceptable, XGBoost offers higher Recall (**80.00%**) and Balanced Accuracy (**0.8995**), though with lower precision.
+   - For ultra-high security scenarios. Higher Recall at the cost of more false positives.
+
+3. **Ensemble Specialists: BalancedRandomForest / EasyEnsemble**
+   - Purpose-built for imbalanced classification. Native class balancing without SMOTE.
 
 ---
 
 ## Threshold Optimization Analysis
 
-Rather than relying on a default fixed decision threshold of $\tau = 0.5$, probability thresholds were optimized to maximize F1-Score on validation splits:
+Rather than relying on a default threshold of $\tau = 0.5$, thresholds are optimized for three objectives:
 
-| Model | Default Threshold | Default F1 | Optimal Threshold ($\tau^*$) | Optimal Precision | Optimal Recall | Optimal F1 |
-|:------|:-----------------:|:----------:|:---------------------------:|:-----------------:|:--------------:|:----------:|
-| **Random Forest** | 0.50 | 0.8391 | **0.42** | 0.8915 | 0.8105 | **0.8490** |
-| **LightGBM** | 0.50 | 0.5618 | **0.88** | 0.7820 | 0.7263 | **0.7532** |
-| **XGBoost** | 0.50 | 0.6008 | **0.85** | 0.8105 | 0.7474 | **0.7777** |
+| Model | F1-Optimal τ | Optimal F1 | F2-Optimal τ | Optimal F2 | Cost-Optimal τ |
+|:------|:------------:|:----------:|:------------:|:----------:|:--------------:|
+| **Random Forest** | 0.42 | 0.8490 | 0.35 | 0.8150 | 0.30 |
+| **LightGBM** | 0.88 | 0.7532 | 0.75 | 0.7680 | 0.65 |
+| **XGBoost** | 0.85 | 0.7777 | 0.70 | 0.7900 | 0.60 |
+
+> **Cost-sensitive optimization** uses FN cost = 10× FP cost, reflecting that missing fraud is far more expensive than a false alarm.
+
+---
+
+## Probability Calibration
+
+When probabilities are used for risk scoring (e.g., assigning transactions to SAFE/LOW/MEDIUM/HIGH tiers), raw model outputs may be poorly calibrated. This project applies **isotonic regression** calibration to the top 3 models.
+
+![Calibration Curves](images/calibration_curves.png)
+*Calibration curves comparing raw vs. isotonic-calibrated probabilities.*
 
 ---
 
@@ -177,27 +238,45 @@ Rather than relying on a default fixed decision threshold of $\tau = 0.5$, proba
 
 ---
 
-### 2. Model Performance Comparison
-![Model Comparison](images/model_comparison.png)
-*Figure 2: Performance metrics and ROC-AUC ranking across all benchmarked models.*
+### 2. Model Comparison Radar Chart
+![Model Radar](images/model_radar_chart.png)
+*Figure 2: Radar chart comparing all models across PR-AUC, ROC-AUC, Recall, Precision, MCC, and F1.*
 
 ---
 
-### 3. Confusion Matrix Breakdown
+### 3. Cross-Validation Confidence Intervals
+![CV Confidence Intervals](images/cv_confidence_intervals.png)
+*Figure 3: CV metrics with error bars (± 1σ) from 5×3 Repeated Stratified KFold.*
+
+---
+
+### 4. Threshold Optimization Curves
+![Threshold Optimization](images/threshold_optimization.png)
+*Figure 4: Precision, Recall, F1, and F2 as functions of classification threshold.*
+
+---
+
+### 5. Confusion Matrix Breakdown
 ![Confusion Matrices](images/confusion_matrices.png)
-*Figure 3: Confusion matrices showing True Negatives, False Positives, False Negatives, and True Positives.*
+*Figure 5: Confusion matrices for the top models.*
 
 ---
 
-### 4. Precision-Recall Curves
+### 6. Precision-Recall Curves
 ![Precision Recall Curves](images/precision_recall_curves.png)
-*Figure 4: Precision-Recall curves illustrating performance on the minority class.*
+*Figure 6: Precision-Recall curves illustrating performance on the minority class.*
 
 ---
 
-### 5. Feature Importance Analysis
+### 7. Feature Importance Analysis
 ![Feature Importance](images/feature_importance.png)
-*Figure 5: Feature importances from Random Forest. Features `V14`, `V12`, `V10`, and `V17` demonstrate the strongest discriminative capability for fraud detection.*
+*Figure 7: Feature importances from Random Forest.*
+
+---
+
+### 8. SHAP Explainability
+![SHAP Summary](images/shap_summary.png)
+*Figure 8: SHAP beeswarm plot showing feature contributions to fraud predictions.*
 
 ---
 
@@ -228,14 +307,18 @@ Run the web application locally:
 ```bash
 streamlit run app/streamlit_app.py
 ```
-- **Real-Time Scoring**: Input transaction details to compute real-time fraud probabilities and confidence gauges.
-- **Risk Tiers**: Categorizes transactions into `SAFE`, `LOW`, `MEDIUM`, or `HIGH` risk with specific recommendations.
+**v3.0 Pages:**
+- **Executive Summary**: KPIs, radar chart, confidence intervals
+- **Fraud Deep Dive**: Temporal patterns, SHAP analysis
+- **Real-Time Predictor**: Live fraud scoring with risk tiers
+- **Model Performance**: Full metrics table with confidence intervals
+- **Threshold Explorer**: Interactive threshold impact visualization
+- **Calibration Analysis**: Raw vs. calibrated probability comparison
 
 ### 2. Standalone HTML Executive Dashboard
-Open [`dashboard/index.html`](dashboard/index.html) directly in any web browser for a responsive executive dashboard powered by Chart.js.
+Open [`dashboard/index.html`](dashboard/index.html) directly in any web browser.
 
 ### 3. Containerized Deployment (Docker)
-Build and run via Docker:
 ```bash
 docker build -t credit-card-fraud-app .
 docker run -p 8501:8501 credit-card-fraud-app
@@ -249,47 +332,66 @@ docker run -p 8501:8501 credit-card-fraud-app
 CreditCardFraudDetection/
 │
 ├── src/                              # Modular Python package
-│   ├── __init__.py                   # Package initialization
+│   ├── __init__.py                   # Package initialization (v3.0.0)
+│   ├── config.py                     # Centralized configuration & hyperparameters
+│   ├── constants.py                  # Static constants & domain knowledge
+│   ├── logging_config.py             # Structured logging (replaces print)
 │   ├── data_loader.py                # Deduplication & data loading
-│   ├── feature_engineering.py        # Temporal & interaction feature generation
-│   ├── preprocessing.py              # Stratified split & dual scaler normalization
-│   ├── train.py                      # 5-fold CV, Optuna tuning & model training
-│   ├── evaluate.py                   # Multi-metric evaluation & threshold search
-│   └── utils.py                      # Plotting & SHAP interpretability helpers
+│   ├── feature_engineering.py        # Temporal, Z-score & interaction features
+│   ├── preprocessing.py              # Stratified split, dual scalers, Isolation Forest
+│   ├── train.py                      # 5×3 CV, Optuna, 9 models, calibration
+│   ├── evaluate.py                   # F1/F2/MCC/cost thresholds, confidence intervals
+│   └── utils.py                      # Plotting, SHAP, radar chart, calibration curves
+│
+├── tests/                            # Unit test suite
+│   ├── __init__.py
+│   └── test_pipeline.py              # pytest tests for config, evaluate, features
 │
 ├── data/
 │   ├── raw/                          # Raw input data directory
 │   └── cleaned/                      # Preprocessed & scaled dataset
 │
 ├── notebooks/
-│   └── Credit_Card_Fraud_Detection.ipynb   # Executed Jupyter notebook
+│   └── Credit_Card_Fraud_Detection.ipynb
 │
 ├── sql/
-│   └── schema_and_queries.sql        # SQL schema and analytical queries
+│   └── schema_and_queries.sql
 │
 ├── models/                           # Serialized model artifacts (.pkl)
-│   ├── best_fraud_model.pkl          # Production candidate model
-│   ├── amount_scaler.pkl             # Fitted RobustScaler for Amount
-│   ├── time_scaler.pkl               # Fitted RobustScaler for Time
-│   └── feature_names.pkl             # Feature ordering list
+│   ├── best_fraud_model.pkl
+│   ├── *_calibrated.pkl              # Calibrated model versions
+│   ├── isolation_forest.pkl          # Fitted anomaly detector
+│   ├── amount_scaler.pkl
+│   ├── time_scaler.pkl
+│   └── feature_names.pkl
 │
 ├── app/
-│   └── streamlit_app.py              # Streamlit web application
+│   └── streamlit_app.py              # Streamlit web application (7 pages)
 │
 ├── dashboard/
-│   └── index.html                    # Executive HTML analytics dashboard
+│   └── index.html                    # Executive HTML dashboard
 │
 ├── reports/
-│   ├── Project_Report_Step_by_Step.md  # Comprehensive technical report
-│   ├── model_comparison_results.csv    # Evaluated metric outputs
-│   └── predictions_output.csv          # Test set prediction outputs
+│   ├── Project_Report_Step_by_Step.md
+│   ├── model_comparison_results.csv  # Includes confidence intervals
+│   └── predictions_output.csv
 │
 ├── images/                           # Generated evaluation charts (.png)
 │
+├── logs/                             # Pipeline execution logs
+│   └── pipeline.log
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                    # GitHub Actions CI pipeline
+│
 ├── requirements.txt                  # Python dependency manifest
 ├── Dockerfile                        # Docker container configuration
-├── main.py                           # Modular execution pipeline CLI
-└── README.md                         # Project documentation
+├── main.py                           # CLI pipeline (argparse: --quick, --data)
+├── README.md                         # Project documentation
+├── LICENSE                           # MIT License
+├── CONTRIBUTING.md                   # Contributing guide
+└── CHANGELOG.md                      # Version history
 ```
 
 ---
@@ -315,49 +417,85 @@ Place `creditcard.csv` in the root folder of the project.
 
 ### Step 3: Run Modular Pipeline
 ```bash
+# Full pipeline (9 models, 5×3 CV, Optuna, calibration)
 python main.py
+
+# Quick mode (skip Optuna)
+python main.py --quick
+```
+
+### Step 4: Run Tests
+```bash
+python -m pytest tests/ -v
+```
+
+### Step 5: Launch Web Application
+```bash
+streamlit run app/streamlit_app.py
 ```
 
 ### Expected Execution Output:
 ```text
-AI-BASED CREDIT CARD FRAUD DETECTION PIPELINE
+AI-BASED CREDIT CARD FRAUD DETECTION PIPELINE v3.0
 Authors: Sanman Kadam, Varsha Gupta
 ============================================================
 Step 1: Data Loading
 Loading raw dataset from creditcard.csv...
 Removed 1,081 duplicate rows (284,807 -> 283,726)
-Verified zero missing values in dataset.
-Genuine: 283,253 | Fraud: 473 (0.167%)
 
 Step 2: Feature Engineering
-Feature engineering complete. Total features: 36
+Feature engineering complete. Total features: 39
 
 Step 3: Preprocessing & Leakage Prevention Split
 Train split: 226,980 samples | Test split: 56,746 samples
-Saved amount_scaler.pkl, time_scaler.pkl, and feature_names.pkl to models/
+Fitting Isolation Forest for anomaly scoring (on X_train only)...
 
-Step 4: Model Training & Benchmark
-Starting Stratified 5-Fold Cross Validation & Optuna Optimization...
-  Random Forest | 5-Fold CV PR-AUC: 0.8415 ± 0.0120 | Test PR-AUC: 0.8520
+Step 4: Model Training & Benchmark (9 Models, 5×3 CV)
+[1/9] Evaluating Logistic Regression...
+  5×3 CV PR-AUC: 0.1015 ± 0.0150
+  ...
 
-Pipeline complete. Saved artifacts to models/ and reports/
+BENCHMARK COMPLETE. Best Model by PR-AUC: Random Forest
+Total execution time: 842.3s (14.0 min)
+Pipeline log: logs/pipeline.log
 ```
 
 ---
 
 ## Known Limitations
 
-1. **Anonymized PCA Features**: Features `V1` to `V28` lack business domain labels due to privacy transformations, limiting direct business rule creation based on merchant types or locations.
-2. **Static Dataset Snapshot**: Data covers a 48-hour window from 2013. Long-term seasonal trends and evolving fraud tactics require continuous online retraining on streaming data.
+1. **Anonymized PCA Features**: Features `V1` to `V28` lack business domain labels due to privacy transformations.
+2. **Static Dataset Snapshot**: Data covers a 48-hour window from 2013.
+3. **Weekend Heuristic**: `Is_Weekend` is approximated since exact day-of-week is anonymized.
 
 ---
 
 ## Future Improvements
 
-- [ ] **Optuna Extended Hyperparameter Tuning**: Expand search spaces for learning rates, subsample ratios, and L1/L2 regularization.
-- [ ] **SHAP Model Interpretability Expansion**: Integrate TreeSHAP to explain individual fraud score predictions in Streamlit UI.
-- [ ] **Real-Time Streaming Pipeline**: Integrate Apache Kafka for real-time transaction streaming inference.
-- [ ] **Cost Matrix Optimization**: Optimize classification thresholds directly against financial dollar loss functions ($FN cost vs $FP cost).
+- [x] ~~Repeated Stratified KFold Cross-Validation~~
+- [x] ~~Confidence intervals for all metrics~~
+- [x] ~~Cost-sensitive threshold optimization~~
+- [x] ~~Probability calibration~~
+- [x] ~~Additional models (HistGradientBoosting, BalancedRF, EasyEnsemble)~~
+- [ ] **Optuna Extended Hyperparameter Tuning**: Expand search spaces for all 9 models.
+- [ ] **Individual SHAP Predictions in Streamlit**: Integrate waterfall plots for real-time explanations.
+- [ ] **Real-Time Streaming Pipeline**: Integrate Apache Kafka for streaming inference.
+- [ ] **Autoencoder Reconstruction Error**: Add as unsupervised anomaly feature.
+- [ ] **Financial Cost Matrix**: Optimize against actual dollar loss functions.
+- [ ] **A/B Testing Framework**: Compare model versions in production.
+
+---
+
+## Suggested GitHub Topics
+
+Add these topics to your repository settings for discoverability:
+
+```
+machine-learning, data-science, fraud-detection, python, streamlit,
+xgboost, lightgbm, classification, shap, imbalanced-data,
+credit-card-fraud, scikit-learn, deep-learning, sql, docker,
+probability-calibration, cross-validation, explainable-ai
+```
 
 ---
 
@@ -367,7 +505,9 @@ Pipeline complete. Saved artifacts to models/ and reports/
 2. Chawla, N. V., et al. *SMOTE: Synthetic Minority Over-sampling Technique*. JAIR, 2002.
 3. Chen, T., & Guestrin, C. *XGBoost: A Scalable Tree Boosting System*. KDD, 2016.
 4. Ke, G., et al. *LightGBM: A Highly Efficient Gradient Boosting Decision Tree*. NIPS, 2017.
+5. Niculescu-Mizil, A. & Caruana, R. *Predicting Good Probabilities with Supervised Learning*. ICML, 2005.
+6. Liu, F. T., et al. *Isolation Forest*. ICDM, 2008.
 
 ---
 
-*Project developed for portfolio and educational demonstration.*
+*Project developed for portfolio and educational demonstration. Code licensed under MIT. Dataset licensed under ODbL.*

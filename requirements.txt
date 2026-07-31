@@ -21,3 +21,6 @@ shap>=0.41.0
 joblib>=1.2.0
 streamlit>=1.20.0
 openpyxl>=3.0.0
+
+# Optional (uncomment to enable CatBoost)
+# catboost>=1.1.0

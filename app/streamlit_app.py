@@ -3,6 +3,15 @@ Credit Card Fraud Detection Streamlit Web Application
 =====================================================
 Authors: Sanman Kadam, Varsha Gupta
 
+Features:
+  - Executive Summary Dashboard
+  - Fraud Analytics Deep Dive
+  - Real-Time Transaction Predictor
+  - Model Performance with Confidence Intervals
+  - Threshold Explorer (Interactive)
+  - Calibration Analysis
+  - About Project
+
 Run: streamlit run app/streamlit_app.py
 """
 
@@ -44,6 +53,13 @@ st.markdown("""
         padding: 1rem;
         text-align: center;
     }
+    .version-badge {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.8rem;
+        margin-top: -1rem;
+        margin-bottom: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -51,6 +67,7 @@ st.markdown("""
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BASE_DIR, 'models')
 REPORTS_DIR = os.path.join(BASE_DIR, 'reports')
+IMAGES_DIR = os.path.join(BASE_DIR, 'images')
 
 
 @st.cache_resource
@@ -60,15 +77,17 @@ def load_model_and_scalers():
     amt_scaler_path = os.path.join(MODELS_DIR, 'amount_scaler.pkl')
     time_scaler_path = os.path.join(MODELS_DIR, 'time_scaler.pkl')
     features_path = os.path.join(MODELS_DIR, 'feature_names.pkl')
+    iso_path = os.path.join(MODELS_DIR, 'isolation_forest.pkl')
 
     if not os.path.exists(model_path):
-        return None, None, None, None
+        return None, None, None, None, None
 
     model = joblib.load(model_path)
     amount_scaler = joblib.load(amt_scaler_path) if os.path.exists(amt_scaler_path) else None
     time_scaler = joblib.load(time_scaler_path) if os.path.exists(time_scaler_path) else None
     features = joblib.load(features_path) if os.path.exists(features_path) else None
-    return model, amount_scaler, time_scaler, features
+    iso_forest = joblib.load(iso_path) if os.path.exists(iso_path) else None
+    return model, amount_scaler, time_scaler, features, iso_forest
 
 
 @st.cache_data
@@ -111,8 +130,9 @@ def predict_fraud(model, features_input):
 def main():
     st.markdown('<h1 class="main-header">Credit Card Fraud Detection & Analytics System</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Executive Dashboard & Real Time Fraud Analytics</p>', unsafe_allow_html=True)
+    st.markdown('<p class="version-badge">v3.0.0 — 9 Models | 5×3 CV | Probability Calibration</p>', unsafe_allow_html=True)
 
-    model, amount_scaler, time_scaler, feature_names = load_model_and_scalers()
+    model, amount_scaler, time_scaler, feature_names, iso_forest = load_model_and_scalers()
     results_df = load_results()
 
     # Sidebar Navigation
@@ -120,15 +140,28 @@ def main():
         st.title('Navigation')
         page = st.radio(
             'Select Dashboard View',
-            ['Executive Summary', 'Fraud Deep Dive', 'Real Time Predictor', 'Model Performance', 'About Project'],
+            ['Executive Summary', 'Fraud Deep Dive', 'Real Time Predictor',
+             'Model Performance', 'Threshold Explorer', 'Calibration Analysis',
+             'About Project'],
             index=0
         )
         st.markdown('---')
         st.markdown('### Project Authors')
         st.markdown('* **Sanman Kadam** (Lead)')
         st.markdown('* **Varsha Gupta** (Analyst)')
+        st.markdown('---')
+        st.markdown('### Pipeline Version')
+        st.markdown('`v3.0.0`')
+        st.markdown('**Key Upgrades:**')
+        st.markdown('- 9 ML Models')
+        st.markdown('- 5×3 Repeated CV')
+        st.markdown('- Confidence Intervals')
+        st.markdown('- Probability Calibration')
+        st.markdown('- Cost-Sensitive Thresholds')
 
+    # ═══════════════════════════════════════════════════════════════════════
     # PAGE 1: EXECUTIVE SUMMARY
+    # ═══════════════════════════════════════════════════════════════════════
     if page == 'Executive Summary':
         st.subheader('Executive Summary Dashboard')
 
@@ -136,7 +169,7 @@ def main():
         c1.metric('Total Transactions', '284,807')
         c2.metric('Fraud Transactions', '492', '0.17% Ratio')
         c3.metric('Total Fraud Loss', '$60,127.97', 'Preventable')
-        c4.metric('Best Model PR AUC', '0.8520', 'Random Forest')
+        c4.metric('Models Benchmarked', '9', 'v3.0')
 
         st.markdown('---')
         col_a, col_b = st.columns(2)
@@ -158,18 +191,34 @@ def main():
             if results_df is not None and 'Model' in results_df.columns:
                 metric_col = 'Test_PR_AUC' if 'Test_PR_AUC' in results_df.columns else 'ROC-AUC'
                 fig_models = px.bar(
-                    results_df,
-                    x='Model', y=metric_col,
+                    results_df.sort_values(metric_col, ascending=True),
+                    x=metric_col, y='Model',
                     color=metric_col,
                     color_continuous_scale='Greens',
-                    labels={'Model': 'Model Algorithm', metric_col: 'PR AUC Score'}
+                    labels={'Model': 'Model Algorithm', metric_col: 'PR AUC Score'},
+                    orientation='h'
                 )
                 fig_models.update_layout(height=350)
                 st.plotly_chart(fig_models, use_container_width=True)
             else:
                 st.info('Model results loading...')
 
+        # Show key images
+        st.markdown('---')
+        st.markdown('#### Key Visualizations')
+        img_col1, img_col2 = st.columns(2)
+
+        radar_path = os.path.join(IMAGES_DIR, 'model_radar_chart.png')
+        ci_path = os.path.join(IMAGES_DIR, 'cv_confidence_intervals.png')
+
+        if os.path.exists(radar_path):
+            img_col1.image(radar_path, caption='Model Comparison Radar Chart')
+        if os.path.exists(ci_path):
+            img_col2.image(ci_path, caption='Cross-Validation Confidence Intervals')
+
+    # ═══════════════════════════════════════════════════════════════════════
     # PAGE 2: FRAUD DEEP DIVE
+    # ═══════════════════════════════════════════════════════════════════════
     elif page == 'Fraud Deep Dive':
         st.subheader('Fraud Analytics & Pattern Deep Dive')
 
@@ -200,7 +249,20 @@ def main():
             fig_amt.update_layout(height=350)
             st.plotly_chart(fig_amt, use_container_width=True)
 
+        # Show SHAP & Feature Importance
+        st.markdown('---')
+        shap_col1, shap_col2 = st.columns(2)
+        shap_path = os.path.join(IMAGES_DIR, 'shap_summary.png')
+        fi_path = os.path.join(IMAGES_DIR, 'feature_importance.png')
+
+        if os.path.exists(shap_path):
+            shap_col1.image(shap_path, caption='SHAP Feature Contribution')
+        if os.path.exists(fi_path):
+            shap_col2.image(fi_path, caption='Random Forest Feature Importance')
+
+    # ═══════════════════════════════════════════════════════════════════════
     # PAGE 3: REAL TIME PREDICTOR
+    # ═══════════════════════════════════════════════════════════════════════
     elif page == 'Real Time Predictor':
         st.subheader('Real Time Transaction Fraud Predictor')
         st.markdown('Enter transaction parameters to get an instant risk assessment.')
@@ -238,11 +300,17 @@ def main():
                         feature_dict[fname] = scaled_time_val
                     elif fname == 'Hour':
                         feature_dict[fname] = (time_val / 3600) % 24
+                    elif fname == 'Hour_Of_Week':
+                        feature_dict[fname] = (time_val / 3600) % 168
                     elif fname == 'Is_Night':
                         h = (time_val / 3600) % 24
                         feature_dict[fname] = 1 if (h >= 22 or h <= 5) else 0
+                    elif fname == 'Is_Weekend':
+                        feature_dict[fname] = 1 if time_val >= 86400 else 0
                     elif fname == 'Amount_Log':
                         feature_dict[fname] = np.log1p(amount)
+                    elif fname == 'Amount_Zscore':
+                        feature_dict[fname] = (amount - 88.35) / 250.12  # Approximate from training
                     elif fname == 'Amount_Category':
                         if amount <= 10: feature_dict[fname] = 0
                         elif amount <= 50: feature_dict[fname] = 1
@@ -254,6 +322,14 @@ def main():
                         feature_dict[fname] = v_features[0] * v_features[1]
                     elif fname == 'V14_Amount':
                         feature_dict[fname] = v_features[13] * np.log1p(amount)
+                    elif fname == 'Isolation_Score':
+                        if iso_forest is not None:
+                            iso_input = {f'V{i}': v_features[i-1] for i in range(1, 29)}
+                            iso_input['Scaled_Amount'] = scaled_amt_val
+                            iso_df = pd.DataFrame([iso_input])
+                            feature_dict[fname] = iso_forest.decision_function(iso_df)[0]
+                        else:
+                            feature_dict[fname] = 0.0
                     else:
                         feature_dict[fname] = 0.0
 
@@ -286,32 +362,160 @@ def main():
 
                 st.info(f"**Action Recommended:** {res['recommendation']}")
 
+    # ═══════════════════════════════════════════════════════════════════════
     # PAGE 4: MODEL PERFORMANCE
+    # ═══════════════════════════════════════════════════════════════════════
     elif page == 'Model Performance':
-        st.subheader('Model Performance Matrix')
+        st.subheader('Model Performance Matrix (9 Models)')
+        st.markdown('Cross-validation metrics reported with **confidence intervals (mean ± σ)** from 5×3 Repeated Stratified KFold.')
 
         if results_df is not None:
-            st.dataframe(
-                results_df.style.format('{:.4f}', subset=[c for c in results_df.columns if c != 'Model']),
-                use_container_width=True
-            )
+            # Display CI columns prominently
+            ci_cols = [c for c in results_df.columns if c.startswith('CV_') and not c.endswith(('Mean', 'Std'))]
+            test_cols = [c for c in results_df.columns if c.startswith('Test_')]
+
+            st.markdown('#### Cross-Validation Results (with Confidence Intervals)')
+            display_cols = ['Model'] + ci_cols
+            available_display = [c for c in display_cols if c in results_df.columns]
+            if available_display:
+                st.dataframe(results_df[available_display], use_container_width=True)
+
+            st.markdown('#### Hold-Out Test Set Results')
+            test_display = ['Model'] + [c for c in test_cols if c in results_df.columns]
+            if test_display:
+                numeric_cols = [c for c in test_display if c != 'Model' and results_df[c].dtype in ['float64', 'int64']]
+                st.dataframe(
+                    results_df[test_display].style.format('{:.4f}', subset=numeric_cols),
+                    use_container_width=True
+                )
+
+            st.markdown('#### Threshold Optimization Results')
+            thresh_cols = ['Model', 'Optimal_F1_Threshold', 'Optimal_F1',
+                          'Optimal_F2_Threshold', 'Optimal_F2',
+                          'Cost_Optimal_Threshold', 'Total_Cost_At_Optimal']
+            available_thresh = [c for c in thresh_cols if c in results_df.columns]
+            if available_thresh:
+                numeric_thresh = [c for c in available_thresh if c != 'Model' and results_df[c].dtype in ['float64', 'int64']]
+                st.dataframe(
+                    results_df[available_thresh].style.format('{:.4f}', subset=numeric_thresh),
+                    use_container_width=True
+                )
         else:
             st.warning('Results CSV missing. Please run main.py.')
 
-    # PAGE 5: ABOUT
+    # ═══════════════════════════════════════════════════════════════════════
+    # PAGE 5: THRESHOLD EXPLORER
+    # ═══════════════════════════════════════════════════════════════════════
+    elif page == 'Threshold Explorer':
+        st.subheader('Interactive Threshold Explorer')
+        st.markdown("""
+        Banks almost never use a default threshold of 0.5. Use this tool to explore
+        how changing the classification threshold affects Precision, Recall, F1, and F2.
+        """)
+
+        threshold = st.slider('Classification Threshold (τ)', 0.01, 0.99, 0.50, 0.01)
+
+        st.markdown(f'**Current Threshold: τ = {threshold:.2f}**')
+
+        # Show threshold optimization images
+        thresh_path = os.path.join(IMAGES_DIR, 'threshold_optimization.png')
+        if os.path.exists(thresh_path):
+            st.image(thresh_path, caption='Threshold Optimization Curves (from pipeline)')
+
+        st.markdown('---')
+        st.markdown('#### Threshold Impact Explanation')
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"""
+            **At τ = {threshold:.2f}:**
+            - **Lower threshold** → More transactions flagged as fraud
+            - Higher Recall (fewer missed frauds)
+            - Lower Precision (more false alarms)
+            - Better for **high-security** scenarios
+            """)
+        with col2:
+            st.markdown(f"""
+            **Trade-off:**
+            - **Higher threshold** → Fewer transactions flagged
+            - Lower Recall (more missed frauds)
+            - Higher Precision (fewer false alarms)
+            - Better for **customer experience**
+            """)
+
+        # Visual gauge
+        fig = go.Figure(go.Indicator(
+            mode='gauge+number',
+            value=threshold * 100,
+            title={'text': 'Threshold (τ × 100)'},
+            gauge={
+                'axis': {'range': [0, 100]},
+                'bar': {'color': '#3b82f6'},
+                'steps': [
+                    {'range': [0, 30], 'color': '#fee2e2'},
+                    {'range': [30, 60], 'color': '#fef3c7'},
+                    {'range': [60, 100], 'color': '#d1fae5'},
+                ],
+                'threshold': {
+                    'line': {'color': 'red', 'width': 4},
+                    'thickness': 0.75,
+                    'value': 50
+                }
+            }
+        ))
+        fig.update_layout(height=300)
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PAGE 6: CALIBRATION ANALYSIS
+    # ═══════════════════════════════════════════════════════════════════════
+    elif page == 'Calibration Analysis':
+        st.subheader('Probability Calibration Analysis')
+        st.markdown("""
+        **Why calibration matters:** When a model outputs P(fraud) = 0.70, ideally 70% of
+        those transactions should actually be fraud. Uncalibrated models often produce
+        overconfident or underconfident probabilities.
+
+        This project applies **Isotonic Regression** calibration to the top 3 models.
+        """)
+
+        cal_path = os.path.join(IMAGES_DIR, 'calibration_curves.png')
+        if os.path.exists(cal_path):
+            st.image(cal_path, caption='Calibration Curves — Raw vs. Isotonic Calibrated')
+        else:
+            st.info('Calibration curves not yet generated. Run main.py first.')
+
+        st.markdown('---')
+        st.markdown('#### How to Read Calibration Curves')
+        st.markdown("""
+        - **Perfectly calibrated** models follow the diagonal (dashed line)
+        - Points **above** the diagonal → model is **underconfident** (actual fraud rate higher than predicted)
+        - Points **below** the diagonal → model is **overconfident** (actual fraud rate lower than predicted)
+        - **Isotonic calibration** adjusts probabilities to be more reliable for risk scoring
+        """)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PAGE 7: ABOUT
+    # ═══════════════════════════════════════════════════════════════════════
     elif page == 'About Project':
         st.subheader('About Project & Technical Architecture')
         st.markdown("""
-        ### AI Based Credit Card Fraud Detection System
+        ### AI Based Credit Card Fraud Detection System v3.0
 
         **Authors**:
         * **Sanman Kadam** (Project Lead / Data Scientist)
         * **Varsha Gupta** (Data Analyst / ML Engineer)
 
-        **System Highlights**:
+        **v3.0 System Highlights**:
         * **Leakage Free Scaling**: Separate RobustScalers for Amount and Time fitted exclusively on training split.
-        * **5 Fold Stratified Cross Validation**: SMOTE applied strictly inside cross-validation folds.
-        * **Multi Metric Benchmark**: PR AUC, ROC AUC, MCC, Balanced Accuracy, Cohen Kappa, Precision, Recall, F1.
+        * **5×3 Repeated Stratified Cross Validation**: 15 total evaluations with SMOTE inside each fold.
+        * **9 Models Benchmarked**: LR, DT, RF, XGBoost, LightGBM, HistGradientBoosting, BalancedRandomForest, EasyEnsemble, CatBoost (optional).
+        * **Confidence Intervals**: All metrics reported as mean ± σ.
+        * **Probability Calibration**: Isotonic regression for reliable risk scores.
+        * **F2-Score**: β=2 metric emphasizing recall for fraud detection.
+        * **Cost-Sensitive Thresholds**: Optimized using FN/FP cost ratio (10:1).
+        * **Isolation Forest**: Anomaly scores as an engineered feature.
+        * **Multi Metric Benchmark**: PR AUC, ROC AUC, MCC, Balanced Accuracy, Cohen Kappa, F1, F2.
         """)
 
 
