@@ -253,7 +253,7 @@ def generate_confidence_interval_plot(results_df, images_dir: str):
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     for idx, (mean_col, std_col, title) in enumerate(metrics_to_plot):
-        if mean_col not in results_df.columns:
+        if mean_col not in results_df.columns or std_col not in results_df.columns:
             continue
         df_sorted = results_df.sort_values(mean_col, ascending=True)
         colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(df_sorted)))
