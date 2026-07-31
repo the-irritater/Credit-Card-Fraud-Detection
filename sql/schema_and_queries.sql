@@ -1,6 +1,6 @@
 -- ============================================================
 -- Credit Card Fraud Detection - SQL Schema & Analytical Queries
--- Authors: Sanman Kadam, Varsha Gupta
+-- Authors: Varsha Gupta, Sanman Kadam
 -- ============================================================
 
 -- 1. Create Database

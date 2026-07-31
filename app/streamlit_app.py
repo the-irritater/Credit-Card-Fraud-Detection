@@ -1,7 +1,7 @@
 """
 Credit Card Fraud Detection Streamlit Web Application
 =====================================================
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 
 Features:
   - Executive Summary Dashboard
@@ -147,8 +147,8 @@ def main():
         )
         st.markdown('---')
         st.markdown('### Project Authors')
-        st.markdown('* **Sanman Kadam** (Lead)')
-        st.markdown('* **Varsha Gupta** (Analyst)')
+        st.markdown('* **Varsha Gupta** (Lead)')
+        st.markdown('* **Sanman Kadam** (Analyst)')
         st.markdown('---')
         st.markdown('### Pipeline Version')
         st.markdown('`v3.0.0`')
@@ -503,8 +503,8 @@ def main():
         ### AI Based Credit Card Fraud Detection System v3.0
 
         **Authors**:
-        * **Sanman Kadam** (Project Lead / Data Scientist)
-        * **Varsha Gupta** (Data Analyst / ML Engineer)
+        * **Varsha Gupta** (Project Lead / Data Analyst)
+        * **Sanman Kadam** (Data Analyst)
 
         **v3.0 System Highlights**:
         * **Leakage Free Scaling**: Separate RobustScalers for Amount and Time fitted exclusively on training split.

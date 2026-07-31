@@ -9,7 +9,7 @@ Executes:
   4. Probability calibration with CalibratedClassifierCV.
   5. Cost-sensitive threshold optimization.
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import numpy as np

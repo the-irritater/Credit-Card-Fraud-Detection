@@ -10,7 +10,7 @@ Constructs deterministic domain-specific features:
 Note: Leakage-sensitive features (Isolation Forest scores) are computed
 in preprocessing.py AFTER train/test split.
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import pandas as pd

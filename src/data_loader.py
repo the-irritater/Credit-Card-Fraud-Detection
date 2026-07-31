@@ -2,7 +2,7 @@
 Data Loading Module
 ===================
 Handles loading, inspecting, deduplication, and initial missing value checks.
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import pandas as pd

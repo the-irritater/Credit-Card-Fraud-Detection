@@ -6,8 +6,8 @@
 
 | Author | Role |
 |--------|------|
-| **Sanman Kadam** | Project Lead / Data Scientist |
-| **Varsha Gupta** | Data Analyst / ML Engineer |
+| **Varsha Gupta** | Project Lead / Data Analyst |
+| **Sanman Kadam** | Data Analyst |
 
 ---
 

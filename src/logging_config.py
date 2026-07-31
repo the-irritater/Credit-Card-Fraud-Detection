@@ -4,7 +4,7 @@ Logging Configuration Module
 Replaces print() with structured Python logging.
 Outputs to both console (INFO) and file (DEBUG).
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import logging

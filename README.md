@@ -437,7 +437,7 @@ streamlit run app/streamlit_app.py
 ### Expected Execution Output:
 ```text
 AI-BASED CREDIT CARD FRAUD DETECTION PIPELINE v3.0
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 ============================================================
 Step 1: Data Loading
 Loading raw dataset from creditcard.csv...

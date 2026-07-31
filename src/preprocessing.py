@@ -7,7 +7,7 @@ Prevents statistical data leakage by:
   3. Transforming X_test using the scalers fitted on X_train.
   4. Fitting Isolation Forest anomaly detector on X_train and scoring both splits.
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import pandas as pd

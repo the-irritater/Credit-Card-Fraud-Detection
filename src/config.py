@@ -4,7 +4,7 @@ Centralized Configuration Module
 Single source of truth for all pipeline hyperparameters, paths, and settings.
 Eliminates hard-coded values throughout the codebase.
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import os

@@ -9,7 +9,7 @@ Calculates comprehensive statistical metrics for imbalanced fraud classification
   - Cost-Sensitive Threshold Optimization
   - Confidence Interval Computation from Cross-Validation Folds
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import numpy as np

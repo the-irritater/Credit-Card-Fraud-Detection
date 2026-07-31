@@ -4,7 +4,7 @@ Utilities Module
 Plotting, reporting, SHAP analysis, calibration visualization,
 threshold curves, radar charts, and prediction helpers.
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import os

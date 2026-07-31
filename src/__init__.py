@@ -1,11 +1,11 @@
 """
 Credit Card Fraud Detection & Analytics System
 Package Initialization
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 __version__ = "3.0.0"
-__author__ = "Sanman Kadam, Varsha Gupta"
+__author__ = "Varsha Gupta, Sanman Kadam"
 
 from src.data_loader import load_dataset
 from src.feature_engineering import engineer_features

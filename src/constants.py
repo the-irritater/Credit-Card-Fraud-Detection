@@ -4,7 +4,7 @@ Constants Module
 Static constants and enumerations used across the pipeline.
 Separates configuration (tunable) from constants (fixed domain knowledge).
 
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 """
 
 import numpy as np

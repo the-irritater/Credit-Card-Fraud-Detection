@@ -1,7 +1,7 @@
 """
 Credit Card Fraud Detection Pipeline
 ====================================
-Authors: Sanman Kadam, Varsha Gupta
+Authors: Varsha Gupta, Sanman Kadam
 
 Executes end-to-end machine learning workflow:
   1. Data Loading & Deduplication
@@ -68,7 +68,7 @@ def main():
 
     logger.info("")
     logger.info("AI-BASED CREDIT CARD FRAUD DETECTION PIPELINE v3.0")
-    logger.info("Authors: Sanman Kadam, Varsha Gupta")
+    logger.info("Authors: Varsha Gupta, Sanman Kadam")
     logger.info("=" * 60)
     pipeline_start = time.time()
 
